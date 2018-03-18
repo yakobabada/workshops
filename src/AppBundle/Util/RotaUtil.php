@@ -11,13 +11,19 @@ class RotaUtil
      * @var EntityManager
      */
     private $entityManager;
+    /**
+     * @var ShiftUtil
+     */
+    private $shiftUtil;
 
     /**
      * @param EntityManager $entityManager
+     * @param ShiftUtil $shiftUtil
      */
-    public function __construct(EntityManager $entityManager)
+    public function __construct(EntityManager $entityManager, ShiftUtil $shiftUtil)
     {
         $this->entityManager = $entityManager;
+        $this->shiftUtil = $shiftUtil;
     }
 
     /**
@@ -33,21 +39,20 @@ class RotaUtil
     }
 
     /**
-     * @param $rotaId
+     * @param int $rotaId
      *
      * @return array
      */
-    public function getTotalWorkHoursInDayNumber(int $rotaId) : array
+    public function getShiftList(int $rotaId) : array
     {
-        $workHoursDayList = $this->entityManager->getRepository(RotaSlotStaff::class)->findTotalWorkHoursPerDayByRota($rotaId);
+        $dayNumbers = $this->getDays($rotaId);
+        $shiftList = [];
 
-        $workHoursDays = [];
-
-        foreach ($workHoursDayList as $workHoursDay) {
-            $workHoursDays[$workHoursDay['dayNumber']] = $workHoursDay['totalWorkHours'];
+        foreach ($dayNumbers as $dayNumber) {
+            $shiftList[$dayNumber] = $this->shiftUtil->get($rotaId, $dayNumber);
         }
 
-        return $workHoursDays;
+        return $shiftList;
     }
 
     /**

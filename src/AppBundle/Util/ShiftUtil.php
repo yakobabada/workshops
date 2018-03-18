@@ -43,9 +43,25 @@ class ShiftUtil
             ->setDayNumber($dayNumber)
             ->setDayInterval($totalShiftInterval)
             ->setWorkingGroupIntervals($workingGroupIntervals)
-            ->setWorkingAloneIntervals($aloneWorkIntervals);
+            ->setWorkingAloneIntervals($aloneWorkIntervals)
+            ->setTotalWorkingHours($this->getTotalWorkingHours($rotaSlotStaffList));
     }
 
+    /**
+     * @param array $rotaSlotStaffList
+     *
+     * @return float
+     */
+    private function getTotalWorkingHours(array $rotaSlotStaffList) : float
+    {
+        $totalWorkingHours = 0;
+
+        foreach ($rotaSlotStaffList as $rotaSlotStaff) {
+            $totalWorkingHours += $rotaSlotStaff->getWorkHours();
+        }
+
+        return $totalWorkingHours;
+    }
 
     /**
      * @param array $rotaSlotStaffList
