@@ -4,6 +4,7 @@ namespace AppBundle\Util;
 
 use AppBundle\Entity\RotaSlotStaff;
 use AppBundle\Model\IntervalModel;
+use AppBundle\Model\ShiftModel;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManager;
 
@@ -14,18 +15,6 @@ class ShiftUtil
      */
     private $entityManager;
 
-    private $workAloneInMinute = 0;
-
-    /**
-     * @var []IntervalModel
-     */
-    private $groupWorkIntervals = [];
-
-    /**
-     * @var IntervalModel
-     */
-    private $totalShiftInterval;
-
     /**
      * @param EntityManager $entityManager
      */
@@ -34,35 +23,35 @@ class ShiftUtil
         $this->entityManager = $entityManager;
     }
 
-    public function calculateShiftIntervals(int $rotaId, int $dayNumber)
+    public function get(int $rotaId, int $dayNumber)
     {
         $rotaSlotStaffList = $this->entityManager
             ->getRepository(RotaSlotStaff::class)
             ->findActiveStaffRotaByRotaAndNumberDay($rotaId, $dayNumber);
 
-        $rotaSlotStaffCollection = new ArrayCollection($rotaSlotStaffList);
+        $totalShiftInterval = $this->getTotalShiftInterval($rotaSlotStaffList);
+        $groupWorkIntervals = $this->calculateGroupWorkIntervals($rotaSlotStaffList);
+        $aloneWorkIntervals = $this->calculateAloneWorkIntervals($totalShiftInterval, $groupWorkIntervals);
 
-         $this->totalShiftInterval = $this->getTotalShiftInterval($rotaSlotStaffCollection);
-
-        $this->calculateGroupWorkIntervals($rotaSlotStaffCollection);
-
-        $this->AloneWorkIntervals = $this->calculateAloneWorkIntervals($this->totalShiftInterval, $this->groupWorkIntervals);
-
-        dump($this->AloneWorkIntervals);
+        return (new ShiftModel())
+            ->setDayNumber($dayNumber)
+            ->setDayInterval($totalShiftInterval)
+            ->setGroupWorkIntervals($groupWorkIntervals)
+            ->setAloneWorkIntervals($aloneWorkIntervals);
     }
-
 
 
     /**
-     * @return mixed
+     * @param array $rotaSlotStaffList
+     *
+     * @return array
      */
-    public function getGroupWorkIntervals()
+    private function calculateGroupWorkIntervals(array $rotaSlotStaffList)
     {
-        return $this->groupWorkIntervals;
-    }
+        $rotaSlotStaffCollection = new ArrayCollection($rotaSlotStaffList);
 
-    private function calculateGroupWorkIntervals(ArrayCollection $rotaSlotStaffCollection)
-    {
+        $groupWorkIntervals = [];
+
         for ($i=0;$i<$rotaSlotStaffCollection->count();$i++) {
             $currentMember = $rotaSlotStaffCollection->current();
 
@@ -77,9 +66,11 @@ class ShiftUtil
             $nextShiftInterval = new IntervalModel($nextMember->getStartTime(), $nextMember->getEndTime());
 
             if ($this->areMembersWorkSameTime($shiftInterval, $nextShiftInterval)) {
-                $this->addToGroupWorkIntervals($this->getGroupWorkInterval($shiftInterval, $nextShiftInterval));
+                $groupWorkIntervals = $this->addToGroupWorkIntervals($groupWorkIntervals, $this->getGroupWorkInterval($shiftInterval, $nextShiftInterval));
             }
         }
+
+        return $groupWorkIntervals;
     }
 
     /**
@@ -105,42 +96,31 @@ class ShiftUtil
     }
 
     /**
-     * @return int
-     */
-    public function getWorkAloneInMinute()
-    {
-        return $this->workAloneInMinute;
-    }
-
-    /**
-     * @param int $workAloneInMinute
-     */
-    public function setWorkAloneInMinute($workAloneInMinute)
-    {
-        $this->workAloneInMinute = $workAloneInMinute;
-    }
-
-    /**
+     * @param array $groupWorkIntervals
      * @param IntervalModel $interval
+     *
+     * @return array
      */
-    public function addToGroupWorkIntervals(IntervalModel $interval)
+    public function addToGroupWorkIntervals(array $groupWorkIntervals, IntervalModel $interval) : array
     {
-        foreach ($this->groupWorkIntervals as $groupWorkInterval) {
+        foreach ($groupWorkIntervals as $groupWorkInterval) {
             if ($groupWorkInterval->IsTouching($interval)) {
                 $groupWorkInterval->concatenate($interval);
-                return;
+                return $groupWorkIntervals;
             }
         }
 
-        $this->groupWorkIntervals[] = $interval;
+        $groupWorkIntervals[] = $interval;
+
+        return $groupWorkIntervals;
     }
 
     /**
-     * @param ArrayCollection $rotaSlotStaffCollection
+     * @param array $rotaSlotStaffCollection
      *
      * @return IntervalModel
      */
-    public function getTotalShiftInterval(ArrayCollection $rotaSlotStaffCollection) : IntervalModel
+    public function getTotalShiftInterval($rotaSlotStaffCollection) : IntervalModel
     {
         $startTime = null;
         $endTime = null;
@@ -158,7 +138,13 @@ class ShiftUtil
         return new IntervalModel($startTime, $endTime);
     }
 
-    private function calculateAloneWorkIntervals($totalShiftInterval, $groupWorkIntervals)
+    /**
+     * @param $totalShiftInterval
+     * @param $groupWorkIntervals
+     *
+     * @return array
+     */
+    private function calculateAloneWorkIntervals($totalShiftInterval, $groupWorkIntervals) : array
     {
         $totalAloneIntervals = [$totalShiftInterval];
 
