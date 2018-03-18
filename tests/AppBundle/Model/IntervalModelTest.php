@@ -43,6 +43,28 @@ class IntervalModelTest extends TestCase
         $this->assertFalse($interval->isTouching($noneTouchingInterval));
     }
 
+    public function testIsOverLap()
+    {
+        $interval = new IntervalModel(
+            (new \DateTime())->setTime(9, 0),
+            (new \DateTime())->setTime(11, 0)
+        );
+
+        $touchingInterval = new IntervalModel(
+            (new \DateTime())->setTime(10, 0),
+            (new \DateTime())->setTime(12, 0)
+        );
+
+        $this->assertTrue($interval->IsOverlap($touchingInterval));
+
+        $touchingInterval = new IntervalModel(
+            (new \DateTime())->setTime(12, 0),
+            (new \DateTime())->setTime(15, 0)
+        );
+
+        $this->assertFalse($interval->IsOverlap($touchingInterval));
+    }
+
     public function testConcatenate()
     {
         $interval = new IntervalModel(
