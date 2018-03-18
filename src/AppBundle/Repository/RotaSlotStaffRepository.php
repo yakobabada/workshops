@@ -30,25 +30,6 @@ class RotaSlotStaffRepository extends EntityRepository
      *
      * @return array
      */
-    public function findTotalWorkHoursPerDayByRota(int $rotaId) : array
-    {
-        $queryBuilder =  $this->getEntityManager()->createQueryBuilder();
-
-        return $queryBuilder
-            ->select('SUM(rota.workHours) as totalWorkHours, rota.dayNumber')
-            ->from(RotaSlotStaff::class, 'rota')
-            ->where('rota.rotaId = :rotaId')
-            ->groupBy('rota.dayNumber')
-            ->setParameter('rotaId', $rotaId)
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * @param int $rotaId
-     *
-     * @return array
-     */
     public function findStaffShiftsByRota(int $rotaId) : array
     {
         $queryBuilder =  $this->getEntityManager()->createQueryBuilder();

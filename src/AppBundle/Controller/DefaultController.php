@@ -17,17 +17,11 @@ class DefaultController extends Controller
     {
         $rotaUtil = $this->container->get('app.util.rota');
 
-        $shiftUtil = $this->get('app.util.shift');
-
-        $shiftUtil->calculateShiftIntervals($rotaId, 6);
-
-        dump($shiftUtil->getGroupWorkIntervals());exit;
-
         return $this->render('@App/default/index.html.twig', [
             'dayNumbers' => $rotaUtil->getDays($rotaId),
             'staffIds' => $rotaUtil->getActiveStaff($rotaId),
+            'shiftList' => $rotaUtil->getShiftList($rotaId),
             'staffShiftsInDayNumber' => $rotaUtil->getStaffShiftsInDayNumber($rotaId),
-            'totalWorkHoursList' => $rotaUtil->getTotalWorkHoursInDayNumber($rotaId)
         ]);
     }
 }
