@@ -120,6 +120,11 @@ class IntervalModel
         return null;
     }
 
+    /**
+     * @param IntervalModel $interval
+     *
+     * @return array
+     */
     public function getNoneOverlapIntervals(IntervalModel $interval)
     {
         $intervals = [];
@@ -136,7 +141,7 @@ class IntervalModel
             return $intervals;
         }
 
-        return null;
+        return [];
     }
 
     /**

@@ -4,7 +4,7 @@
     <div class="container">
         <div class="row">
             <div class="col">
-                <h2>Work shop rota</h2>
+                <h2>Workshop rota</h2>
                 <table class="table table-bordered">
                     <thead>
                     <tr>
@@ -32,7 +32,13 @@
                         <tr class="table-warning">
                             <th scope="row">Total hours</th>
                             {% for dayNumber in dayNumbers  %}
-                                <td scope="col">{{ totalWorkHoursList[dayNumber] }}</td>
+                                <td scope="col">{{ shiftList[dayNumber].totalWorkingHours }}</td>
+                            {% endfor %}
+                        </tr>
+                        <tr class="table-warning">
+                            <th scope="row">Working alone (minute)</th>
+                            {% for dayNumber in dayNumbers  %}
+                                <td scope="col">{{ shiftList[dayNumber].totalWorkingAloneInMinutes }}</td>
                             {% endfor %}
                         </tr>
                     </tbody>
