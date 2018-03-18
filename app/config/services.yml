@@ -34,12 +34,13 @@ services:
     #     arguments:
     #         $someArgument: 'some_value'
 
-
+    # Utils
     app.util.rota:
         class: AppBundle\Util\RotaUtil
         public: true
         arguments:
             - '@doctrine.orm.entity_manager'
+            - '@app.util.shift'
 
     app.util.shift:
         class: AppBundle\Util\ShiftUtil
