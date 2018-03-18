@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <h2>Work shop rota</h2>
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">Staff / Day</th>
+                        {% for dayNumber in dayNumbers  %}
+                            <th scope="col">{{ dayNumber }}</th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                        {% for memberId in staffIds %}
+                            <tr>
+                                <th scope="row">{{ memberId }}</th>
+                                {% for dayNumber in dayNumbers %}
+                                    {% if staffShiftsInDayNumber[memberId][dayNumber] is defined %}
+                                        {% set shift = staffShiftsInDayNumber[memberId][dayNumber] %}
+                                        <td>{{ shift.startTime|date('H:i') }} - {{ shift.endTime|date('H:i') }}</td>
+                                    {% else %}
+                                        <td>-</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+
+                        <tr class="table-warning">
+                            <th scope="row">Total hours</th>
+                            {% for dayNumber in dayNumbers  %}
+                                <td scope="col">{{ totalWorkHoursList[dayNumber] }}</td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+        .table-bordered td, th {
+            text-align: center;
+        }
+    </style>
+{% endblock %}
