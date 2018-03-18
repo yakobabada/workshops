@@ -2,10 +2,7 @@
 
 namespace Tests\AppBundle\Util;
 
-use AppBundle\Entity\RotaSlotStaff;
-use AppBundle\Model\IntervalModel;
 use AppBundle\Util\ShiftUtil;
-use Doctrine\Common\Persistence\ObjectRepository;
 use Doctrine\ORM\EntityManager;
 use PHPUnit\Framework\TestCase;
 

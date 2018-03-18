@@ -5,7 +5,7 @@ namespace Tests\AppBundle\Model;
 use AppBundle\Model\IntervalModel;
 use PHPUnit\Framework\TestCase;
 
-class DefaultControllerTest extends TestCase
+class IntervalModelTest extends TestCase
 {
     public function testIsTouching()
     {
@@ -91,35 +91,68 @@ class DefaultControllerTest extends TestCase
         $this->assertEquals($interval->getEndTime(), (new \DateTime())->setTime(11, 0));
     }
 
-    public function testGetOverLapInverval()
+    public function testGetOverLapInterval()
     {
         $interval = new IntervalModel(
             (new \DateTime())->setTime(9, 0),
             (new \DateTime())->setTime(11, 0)
         );
 
-        $touchingInterval = new IntervalModel(
+        $overlappedInterval = new IntervalModel(
             (new \DateTime())->setTime(10, 0),
             (new \DateTime())->setTime(12, 0)
         );
 
-        $this->assertEquals($interval->getOverLapInterval($touchingInterval), new IntervalModel(
+        $this->assertEquals($interval->getOverLapInterval($overlappedInterval), new IntervalModel(
             (new \DateTime())->setTime(10, 0),
             (new \DateTime())->setTime(11, 0)
         ));
 
-        $noneTouchingInterval = new IntervalModel(
+        $noneOverLappedInterval = new IntervalModel(
             (new \DateTime())->setTime(11, 05),
             (new \DateTime())->setTime(12, 0)
         );
 
-        $this->assertNull($interval->getOverLapInterval($noneTouchingInterval));
+        $this->assertNull($interval->getOverLapInterval($noneOverLappedInterval));
 
-        $noneTouchingInterval = new IntervalModel(
+        $noneOverLappedInterval = new IntervalModel(
             (new \DateTime())->setTime(11, 00),
             (new \DateTime())->setTime(12, 0)
         );
 
-        $this->assertNull($interval->getOverLapInterval($noneTouchingInterval));
+        $this->assertNull($interval->getOverLapInterval($noneOverLappedInterval));
+    }
+
+    public function testNoneOverlapIntervals()
+    {
+        $interval = new IntervalModel(
+            (new \DateTime())->setTime(9, 0),
+            (new \DateTime())->setTime(14, 0)
+        );
+
+        $overlappedInterval = new IntervalModel(
+            (new \DateTime())->setTime(10, 0),
+            (new \DateTime())->setTime(12, 0)
+        );
+
+        $this->assertCount(2, $interval->getNoneOverlapIntervals($overlappedInterval));
+        $this->assertContainsOnlyInstancesOf(IntervalModel::class, $interval->getNoneOverlapIntervals($overlappedInterval));
+
+        $overlappedInterval = new IntervalModel(
+            (new \DateTime())->setTime(14, 0),
+            (new \DateTime())->setTime(15, 0)
+        );
+
+        $this->assertCount(0, $interval->getNoneOverlapIntervals($overlappedInterval));
+    }
+
+    public function testGetDiffBetweenStartAndEndTime()
+    {
+        $interval = new IntervalModel(
+            (new \DateTime())->setTime(9, 0),
+            (new \DateTime())->setTime(14, 0)
+        );
+
+        $this->assertInstanceOf(\DateInterval::class, $interval->getDiffBetweenStartAndEndTime());
     }
 }
