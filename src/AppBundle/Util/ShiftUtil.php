@@ -23,21 +23,27 @@ class ShiftUtil
         $this->entityManager = $entityManager;
     }
 
-    public function get(int $rotaId, int $dayNumber)
+    /**
+     * @param int $rotaId
+     * @param int $dayNumber
+     *
+     * @return ShiftModel
+     */
+    public function get(int $rotaId, int $dayNumber) : ShiftModel
     {
         $rotaSlotStaffList = $this->entityManager
             ->getRepository(RotaSlotStaff::class)
             ->findActiveStaffRotaByRotaAndNumberDay($rotaId, $dayNumber);
 
         $totalShiftInterval = $this->getTotalShiftInterval($rotaSlotStaffList);
-        $groupWorkIntervals = $this->calculateGroupWorkIntervals($rotaSlotStaffList);
-        $aloneWorkIntervals = $this->calculateAloneWorkIntervals($totalShiftInterval, $groupWorkIntervals);
+        $workingGroupIntervals = $this->calculateWorkingGroupIntervals($rotaSlotStaffList);
+        $aloneWorkIntervals = $this->calculateWorkingAloneIntervals($totalShiftInterval, $workingGroupIntervals);
 
         return (new ShiftModel())
             ->setDayNumber($dayNumber)
             ->setDayInterval($totalShiftInterval)
-            ->setGroupWorkIntervals($groupWorkIntervals)
-            ->setAloneWorkIntervals($aloneWorkIntervals);
+            ->setWorkingGroupIntervals($workingGroupIntervals)
+            ->setWorkingAloneIntervals($aloneWorkIntervals);
     }
 
 
@@ -46,11 +52,11 @@ class ShiftUtil
      *
      * @return array
      */
-    private function calculateGroupWorkIntervals(array $rotaSlotStaffList)
+    private function calculateWorkingGroupIntervals(array $rotaSlotStaffList)
     {
         $rotaSlotStaffCollection = new ArrayCollection($rotaSlotStaffList);
 
-        $groupWorkIntervals = [];
+        $workingGroupIntervals = [];
 
         for ($i=0;$i<$rotaSlotStaffCollection->count();$i++) {
             $currentMember = $rotaSlotStaffCollection->current();
@@ -66,11 +72,14 @@ class ShiftUtil
             $nextShiftInterval = new IntervalModel($nextMember->getStartTime(), $nextMember->getEndTime());
 
             if ($this->areMembersWorkSameTime($shiftInterval, $nextShiftInterval)) {
-                $groupWorkIntervals = $this->addToGroupWorkIntervals($groupWorkIntervals, $this->getGroupWorkInterval($shiftInterval, $nextShiftInterval));
+                $workingGroupIntervals = $this->addToWorkingGroupIntervals(
+                    $workingGroupIntervals,
+                    $this->getWorkingGroupInterval($shiftInterval, $nextShiftInterval)
+                );
             }
         }
 
-        return $groupWorkIntervals;
+        return $workingGroupIntervals;
     }
 
     /**
@@ -90,29 +99,29 @@ class ShiftUtil
      *
      * @return IntervalModel|null
      */
-    private function getGroupWorkInterval(IntervalModel $shiftInterval, IntervalModel $nextShiftInterval)
+    private function getWorkingGroupInterval(IntervalModel $shiftInterval, IntervalModel $nextShiftInterval)
     {
         return $shiftInterval->getOverLapInterval($nextShiftInterval);
     }
 
     /**
-     * @param array $groupWorkIntervals
+     * @param array $workingGroupIntervals
      * @param IntervalModel $interval
      *
      * @return array
      */
-    public function addToGroupWorkIntervals(array $groupWorkIntervals, IntervalModel $interval) : array
+    private function addToWorkingGroupIntervals(array $workingGroupIntervals, IntervalModel $interval) : array
     {
-        foreach ($groupWorkIntervals as $groupWorkInterval) {
-            if ($groupWorkInterval->IsTouching($interval)) {
-                $groupWorkInterval->concatenate($interval);
-                return $groupWorkIntervals;
+        foreach ($workingGroupIntervals as $workingGroupInterval) {
+            if ($workingGroupInterval->IsTouching($interval)) {
+                $workingGroupInterval->concatenate($interval);
+                return $workingGroupIntervals;
             }
         }
 
-        $groupWorkIntervals[] = $interval;
+        $workingGroupIntervals[] = $interval;
 
-        return $groupWorkIntervals;
+        return $workingGroupIntervals;
     }
 
     /**
@@ -120,7 +129,7 @@ class ShiftUtil
      *
      * @return IntervalModel
      */
-    public function getTotalShiftInterval($rotaSlotStaffCollection) : IntervalModel
+    private function getTotalShiftInterval($rotaSlotStaffCollection) : IntervalModel
     {
         $startTime = null;
         $endTime = null;
@@ -139,27 +148,60 @@ class ShiftUtil
     }
 
     /**
-     * @param $totalShiftInterval
-     * @param $groupWorkIntervals
+     * Assume entire day is alone work interval then remove all work intervals from it, the remain is
+     * alone work.
+     *
+     * @param IntervalModel $totalShiftInterval
+     * @param array $workingGroupIntervals
      *
      * @return array
      */
-    private function calculateAloneWorkIntervals($totalShiftInterval, $groupWorkIntervals) : array
+    private function calculateWorkingAloneIntervals(IntervalModel $totalShiftInterval, array $workingGroupIntervals) : array
     {
-        $totalAloneIntervals = [$totalShiftInterval];
+        $totalWorkingAloneIntervals = [$totalShiftInterval];
 
-        foreach ($groupWorkIntervals as $groupWorkInterval) {
-            for($i=0;$i<count($totalAloneIntervals);$i++) {
-                if ($totalAloneIntervals[$i]->IsOverlap($groupWorkInterval)) {
-                    $noneOverlapInterval = $totalAloneIntervals[$i]->getNoneOverlapIntervals($groupWorkInterval);
-                    unset($totalAloneIntervals[$i]);
-                    $totalAloneIntervals = array_merge($totalAloneIntervals, $noneOverlapInterval);
-                }
-            }
-
-            $totalAloneIntervals = array_values($totalAloneIntervals);
+        foreach ($workingGroupIntervals as $workingGroupInterval) {
+            $totalWorkingAloneIntervals = $this->inspectWorkingAloneIntervalsAgainstWorkingGroupInterval(
+                $totalWorkingAloneIntervals,
+                $workingGroupInterval
+            );
         }
 
-        return $totalAloneIntervals;
+        return $totalWorkingAloneIntervals;
+    }
+
+    /**
+     * @param array $totalWorkingAloneIntervals
+     * @param $workingGroupInterval
+     *
+     * @return array
+     */
+    private function inspectWorkingAloneIntervalsAgainstWorkingGroupInterval(
+        array $totalWorkingAloneIntervals,
+        IntervalModel $workingGroupInterval
+    ) {
+        for($i=0;$i<count($totalWorkingAloneIntervals);$i++) {
+            if ($totalWorkingAloneIntervals[$i]->IsOverlap($workingGroupInterval)) {
+                $workingAloneIntervals = $this->getWorkingAloneIntervals(
+                    $totalWorkingAloneIntervals[$i],
+                    $workingGroupInterval
+                );
+
+                unset($totalWorkingAloneIntervals[$i]);
+                $totalWorkingAloneIntervals = array_merge($totalWorkingAloneIntervals, $workingAloneIntervals);
+            }
+        }
+
+        return array_values($totalWorkingAloneIntervals);
+    }
+
+    /**
+     * @param $totalWorkingAloneInterval
+     * @param $workingGroupInterval
+     * @return mixed
+     */
+    private function getWorkingAloneIntervals($totalWorkingAloneInterval, $workingGroupInterval)
+    {
+        return $totalWorkingAloneInterval->getNoneOverlapIntervals($workingGroupInterval);
     }
 }

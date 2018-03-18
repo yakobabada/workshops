@@ -15,14 +15,19 @@ class ShiftModel
     private $dayNumber;
 
     /**
-     * @var []IntervalModel
+     * @var array
      */
-    private $groupWorkIntervals;
+    private $workingGroupIntervals;
 
     /**
-     * @var []IntervalModel
+     * @var array
      */
-    private $aloneWorkIntervals;
+    private $workingAloneIntervals;
+
+    /**
+     * @var int
+     */
+    private $totalWorkingHours;
 
     /**
      * @return IntervalModel
@@ -65,43 +70,79 @@ class ShiftModel
     }
 
     /**
-     * @return mixed
+     * @return array
      */
-    public function getGroupWorkIntervals()
+    public function getWorkingGroupIntervals()
     {
-        return $this->groupWorkIntervals;
+        return $this->workingGroupIntervals;
     }
 
     /**
-     * @param $groupWorkIntervals
-     * @return ShiftModel
-     */
-    public function setGroupWorkIntervals($groupWorkIntervals)
-    {
-        $this->groupWorkIntervals = $groupWorkIntervals;
-
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAloneWorkIntervals()
-    {
-        return $this->aloneWorkIntervals;
-    }
-
-    /**
-     * @param $aloneWorkIntervals
+     * @param $workingGroupIntervals
      *
      * @return ShiftModel
      */
-    public function setAloneWorkIntervals($aloneWorkIntervals)
+    public function setWorkingGroupIntervals($workingGroupIntervals)
     {
-        $this->aloneWorkIntervals = $aloneWorkIntervals;
+        $this->workingGroupIntervals = $workingGroupIntervals;
 
         return $this;
     }
 
+    /**
+     * @return array
+     */
+    public function getWorkingAloneIntervals()
+    {
+        return $this->workingAloneIntervals;
+    }
 
+    /**
+     * @return int
+     */
+    public function getTotalWorkingAloneInMinutes()
+    {
+        $workingAlone = 0;
+
+        foreach ($this->workingAloneIntervals as $workingAloneInterval) {
+            $workingAlone += abs(
+                $workingAloneInterval->getStartTime()->getTimestamp() -
+                $workingAloneInterval->getEndTime()->getTimestamp()
+            ) / 60;
+        }
+
+        return $workingAlone;
+    }
+
+    /**
+     * @param $workingAloneIntervals
+     *
+     * @return ShiftModel
+     */
+    public function setWorkingAloneIntervals($workingAloneIntervals)
+    {
+        $this->workingAloneIntervals = $workingAloneIntervals;
+
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTotalWorkingHours()
+    {
+        return $this->totalWorkingHours;
+    }
+
+    /**
+     * @param int $totalWorkingHours
+     *
+     * @return ShiftModel
+     */
+    public function setTotalWorkingHours($totalWorkingHours)
+    {
+        $this->totalWorkingHours = $totalWorkingHours;
+
+        return $this;
+    }
 }
