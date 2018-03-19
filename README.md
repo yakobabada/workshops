@@ -24,5 +24,5 @@ PHP 7, composer
 
 ## Stop running server
 
-- `bin/console server:start`
+- `bin/console server:stop`
 
